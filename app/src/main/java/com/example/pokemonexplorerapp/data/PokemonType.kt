@@ -7,7 +7,6 @@ data class PokemonType(
     val color: Color
 )
 
-// Our 10 types with their colors
 val pokemonTypes = listOf(
     PokemonType("Fire",     Color(0xFFFF5231)),
     PokemonType("Water",    Color(0xFF3692DC)),

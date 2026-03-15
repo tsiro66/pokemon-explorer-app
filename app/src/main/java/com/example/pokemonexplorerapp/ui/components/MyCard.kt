@@ -19,11 +19,11 @@ fun MyCard(
 ) {
     Box(
         modifier = modifier
-            .offset(shadowOffset.dp, shadowOffset.dp) // The hard "shadow"
+            .offset(shadowOffset.dp, shadowOffset.dp)
             .background(Color.Black)
             .then(
                 Modifier
-                    .offset((-shadowOffset).dp, (-shadowOffset).dp) // Move card up
+                    .offset((-shadowOffset).dp, (-shadowOffset).dp)
                     .background(backgroundColor)
                     .border(borderWidth.dp, Color.Black)
             )

@@ -12,6 +12,9 @@ retrofit = "3.0.0"
 navigationCompose = "2.9.7"
 coil = "3.4.0"
 googleFonts = "1.10.4"
+ui = "1.10.5"
+foundationLayout = "1.10.5"
+datastore = "1.2.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -35,6 +38,9 @@ coil = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil"
 coil-network = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
 google-fonts = { group = "androidx.compose.ui", name = "ui-text-google-fonts", version.ref = "googleFonts" }
 animation = { group = "androidx.compose.animation", name = "animation" }
+androidx-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "ui" }
+androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayout" }
+androidx-datastore = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

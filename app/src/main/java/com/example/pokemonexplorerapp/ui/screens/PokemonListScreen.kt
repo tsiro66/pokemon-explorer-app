@@ -14,12 +14,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pokemonexplorerapp.ui.viewmodels.PokemonListViewModel
 import com.example.pokemonexplorerapp.ui.components.MyButton
+import com.example.pokemonexplorerapp.ui.components.MyError
 
 @Composable
 fun PokemonListScreen(
     typeName: String,
     typeColor: Color,
-    onPokemonSelected: (String) -> Unit,
+    onPokemonSelected: (String, Int) -> Unit,
     onBackPressed: () -> Unit,
     viewModel: PokemonListViewModel =  androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
@@ -59,7 +60,6 @@ fun PokemonListScreen(
         Spacer(modifier = Modifier.height(24.dp))
         Text(
             text = typeName,
-//            fontFamily = PokemonFont,
             fontSize = 40.sp,
             fontWeight = FontWeight.ExtraBold,
         )
@@ -97,10 +97,9 @@ fun PokemonListScreen(
                 }
             }
             errorMessage != null -> {
-                Text(
-                    "Error: $errorMessage",
-                    color = Color.Red,
-                    fontWeight = FontWeight.Bold
+                MyError(
+                    message = errorMessage ?: "Unknown Error",
+                    onRetry = { viewModel.fetchPokemon(typeName) }
                 )
             }
             filteredPokemon.isEmpty() -> {
@@ -110,12 +109,13 @@ fun PokemonListScreen(
                 )
             }
             else -> {
-                // Pokemon list — takes up all available space, pushes pagination to bottom
+                // Pokemon list
                 LazyColumn(modifier = Modifier.weight(1f)) {
                     items(paginatedPokemon) { pokemonName ->
+                        val globalIndex = allPokemon.indexOf(pokemonName)
                         MyButton(
                             text = pokemonName,
-                            onClick = { onPokemonSelected(pokemonName) },
+                            onClick = { onPokemonSelected(pokemonName, globalIndex) },
                             backgroundColor = typeColor,
                             textColor = Color.Black,
                             modifier = Modifier

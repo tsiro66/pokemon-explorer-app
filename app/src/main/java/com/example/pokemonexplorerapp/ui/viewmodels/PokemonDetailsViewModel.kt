@@ -15,13 +15,18 @@ class PokemonDetailsViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
+
     fun fetchPokemonDetails(name: String) {
         viewModelScope.launch {
+            _errorMessage.value = null
             _isLoading.value = true
             try {
                 _pokemon.value = RetrofitInstance.api.getPokemonDetails(name.lowercase())
             } catch (e: Exception) {
-                e.printStackTrace()
+                _errorMessage.value = "Check your internet connection or try again later."
+                _pokemon.value = null
             } finally {
                 _isLoading.value = false
             }

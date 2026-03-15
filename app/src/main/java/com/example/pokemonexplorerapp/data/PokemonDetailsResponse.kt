@@ -7,7 +7,6 @@ data class PokemonDetailsResponse(
     val name: String,
     val height: Int,
     val weight: Int,
-    @SerializedName("base_experience") val baseExperience: Int,
     val abilities: List<AbilitySlot>,
     val stats: List<StatSlot>,
     val types: List<TypeSlot>,
@@ -36,7 +35,7 @@ data class PokemonSprites(
 )
 
 data class OtherSprites(
-    @SerializedName("official-artwork") val officialArtwork: OfficialArtwork
+    @SerializedName("official-artwork") val officialArtwork: OfficialArtwork? = null
 )
 
 data class OfficialArtwork(

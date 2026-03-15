@@ -2,7 +2,7 @@ package com.example.pokemonexplorerapp.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.pokemonexplorerapp.data.network.RetrofitInstance
+import com.example.pokemonexplorerapp.data.PokemonRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -17,21 +17,22 @@ class PokemonListViewModel : ViewModel() {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
-    // These persist across navigation
     val searchQuery = MutableStateFlow("")
     val currentPage = MutableStateFlow(0)
 
+    private val repository = PokemonRepository()
     fun fetchPokemon(typeName: String) {
         // Don't re-fetch if we already have data for this type
         if (_allPokemon.value.isNotEmpty()) return
 
         viewModelScope.launch {
+            _errorMessage.value = null
             _isLoading.value = true
             try {
-                val response = RetrofitInstance.api.getTypeDetails(typeName)
-                _allPokemon.value = response.pokemon.map { it.pokemon.name }.sorted()
+                val list = repository.getPokemonByType(typeName)
+                _allPokemon.value = list
             } catch (e: Exception) {
-                _errorMessage.value = e.message
+                _errorMessage.value = "Check your internet connection or try again later."
             } finally {
                 _isLoading.value = false
             }

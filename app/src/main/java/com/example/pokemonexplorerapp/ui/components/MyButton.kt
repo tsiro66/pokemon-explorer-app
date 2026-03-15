@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -30,8 +31,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import androidx.compose.runtime.setValue
-
 
 @Composable
 fun MyButton(
@@ -40,22 +39,29 @@ fun MyButton(
     modifier: Modifier = Modifier,
     backgroundColor: Color = Color.White,
     textColor: Color = Color.Black,
-    height: Dp = 80.dp,
-    fontSize: TextUnit = 18.sp,
+    height: Dp = 60.dp,
+    fontSize: TextUnit = 14.sp,
     enabled: Boolean = true
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    var isPressed by remember { mutableStateOf(false) }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val manualPressed = remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
     val depth = 6.dp
 
+    val effectivePressed = (isPressed || manualPressed.value) && enabled
+
     val offsetAnimation by animateDpAsState(
-        targetValue = if (isPressed && enabled) 0.dp else (-depth),
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        targetValue = if (effectivePressed) 0.dp else (-depth),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
         label = "buttonPress"
     )
 
-    val shadowColor = if (enabled) Color.Black else Color.LightGray  // ← matches button state
+    val shadowColor = if (enabled) Color.Black else Color.LightGray
 
     Box(
         modifier = modifier
@@ -73,11 +79,10 @@ fun MyButton(
             onClick = {
                 if (!enabled) return@Button
                 scope.launch {
-                    isPressed = true   // press down
-                    delay(100)        // hold
-                    isPressed = false  // release
-                    delay(50)         // tiny pause so you see the release
-                    onClick()          // then navigate
+                    manualPressed.value = true
+                    delay(60)
+                    onClick()
+                    manualPressed.value = false
                 }
             },
             enabled = enabled,
@@ -88,20 +93,16 @@ fun MyButton(
             shape = RectangleShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = backgroundColor,
-                disabledContainerColor = backgroundColor.copy(
-                    red = backgroundColor.red * 0.6f + 0.4f,
-                    green = backgroundColor.green * 0.6f + 0.4f,
-                    blue = backgroundColor.blue * 0.6f + 0.4f,
-                )            ),
+                disabledContainerColor = backgroundColor.copy(alpha = 0.6f)
+            ),
             border = BorderStroke(2.dp, shadowColor),
-            elevation = ButtonDefaults.buttonElevation(0.dp, 0.dp)
+            elevation = ButtonDefaults.buttonElevation(0.dp, 0.dp, 0.dp, 0.dp, 0.dp)
         ) {
             Text(
                 text = text.uppercase(),
                 fontSize = fontSize,
                 fontWeight = FontWeight.Black,
-                style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
-                color = if (enabled) textColor else textColor.copy(alpha = 1f)  // ← faded text
+                color = if (enabled) textColor else Color.Gray
             )
         }
     }

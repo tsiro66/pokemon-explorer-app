@@ -1,52 +1,42 @@
 # Pokémon Explorer App
 
-A mobile application built with Jetpack Compose that implements a multi-screen navigation flow to browse Pokémon data from the PokéAPI. The project focuses on clean architecture, reactive state management, and efficient list handling.
-
-## Technical Stack
-
-* **UI:** Jetpack Compose (Declarative UI)
-* **Navigation:** Navigation Compose
-* **Networking:** Retrofit with GSON Converter
-* **Image Loading:** Coil 3
-* **Persistence:** Jetpack DataStore (Preferences)
-* **Concurrency:** Kotlin Coroutines and Flow
-
-## Architecture and Data Flow
-
-The application is structured into a multi-layered architecture to ensure separation of concerns and testability.
-
-### 1. Presentation Layer (UI)
-The UI is built entirely in Compose, utilizing State Hoisting to maintain a unidirectional data flow.
-
-* **Screens:** Stateless composables that receive state from ViewModels and emit events via lambdas.
-* **Lifecycle:** Uses `LaunchedEffect` for side effects (fetching data) and `remember` for optimizing UI-local calculations like list filtering.
-
-
-
-### 2. Logic Layer (ViewModel)
-ViewModels manage screen state using `StateFlow`.
-
-* **Shared State:** Uses `AndroidViewModel` to provide access to the Application Context for DataStore initialization.
-* **State Transformation:** Implements `combine` and `stateIn` operators to merge network data with local persistence data (capture status) into a single UI state.
-
-### 3. Data Layer
-* **Repository Pattern:** Provides a clean API to the rest of the app, abstracting the source of data (Network vs. Disk).
-* **Network:** Retrofit service interface defines asynchronous `suspend` functions for API interaction.
-* **Persistence:** `CaptureStore` utilizes Jetpack DataStore to provide a reactive `Flow` of user-captured Pokémon, ensuring state is preserved across app restarts.
-
-## Project Structure
-
-* `data/`: Data models (DTOs), Retrofit service interfaces, and the Repository.
-* `data/network/`: Retrofit client configuration.
-* `ui/viewmodels/`: ViewModels managing StateFlow for the various screens.
-* `ui/screens/`: Top-level screen composables.
-* `ui/components/`: Reusable atomic UI elements and custom-styled widgets.
+A modern Pokémon browser built with Jetpack Compose. This application interfaces with the PokéAPI to provide a fluid experience for exploring Pokémon data, viewing detailed stats, and managing a personal collection.
 
 ---
 
-### Installation
+## Key Features
 
-1. Clone the repository.
-2. Open in Android Studio Ladybug or later.
-3. Sync Gradle and build the project.
-4. Run on a device or emulator with API level 24 or higher.
+### Type-Based Discovery
+The journey begins with a categorized grid of Pokémon types. Selecting a type filters the database and dynamically updates the application's color scheme to match the chosen element (e.g., red for Fire, blue for Water).
+
+### Infinite List and Search
+The app features an optimized list that handles large amounts of data efficiently.
+* **Search Integration:** Users can filter Pokémon by name in real-time.
+* **Dynamic Loading:** Data is fetched on-demand to ensure the UI remains responsive.
+
+### Interactive Detail Pager
+The details screen uses a paging system that allows users to swipe horizontally between Pokémon.
+* **Statistics:** Combat stats like HP and Attack are displayed using animated progress bars that trigger as you navigate.
+* **Physical Traits:** View official artwork alongside height, weight, abilities, and hidden traits.
+* **Collection Management:** A capture toggle allows users to mark Pokémon as caught. This state is persisted locally using Jetpack DataStore, so your collection is saved even after closing the app.
+
+---
+
+## Technical Overview
+
+The project is built using the latest Android development standards:
+
+* **User Interface:** Built entirely with Jetpack Compose for a declarative and reactive UI.
+* **Networking:** Uses Retrofit to communicate with the PokéAPI.
+* **Local Storage:** Implements Jetpack DataStore for lightweight, persistent key-value storage.
+* **Image Handling:** Utilizes Coil for asynchronous image loading and caching.
+* **State Management:** Uses ViewModels and Kotlin StateFlow to maintain a unidirectional data flow.
+
+---
+
+## Setup Instructions
+
+1. Clone the repository to your local machine.
+2. Open the project in Android Studio.
+3. Sync the Gradle files to download the necessary dependencies.
+4. Run the application on a physical device or emulator running API level 24 or higher.

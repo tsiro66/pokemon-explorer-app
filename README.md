@@ -1,6 +1,6 @@
 # Pokémon Explorer App
 
-A modern Pokémon browser built with Jetpack Compose. This application interfaces with the PokéAPI to provide a fluid experience for exploring Pokémon data, viewing detailed stats, and managing a personal collection.
+A Pokémon browser for Android, built with Jetpack Compose and backed by [PokéAPI](https://pokeapi.co/). Browse Pokémon by type, view detailed stats, and build a personal capture collection.
 
 ---
 
@@ -22,6 +22,37 @@ The details screen uses a paging system that allows users to swipe horizontally 
 
 ---
 
+## Architecture
+
+```
+UI (Compose screens)
+   │  events: search, tap, toggle capture
+ViewModels
+   │  state: StateFlow<UiState<T>>
+Repository (in-memory cache)
+   │  HTTP via Retrofit + OkHttp
+PokéAPI
+```
+
+* **Unidirectional data flow:** screens emit events to ViewModels; ViewModels expose a sealed `UiState` (Loading / Error / Success) that screens render. No impossible states.
+* **Repository:** single source of data. Type lists and details are cached, so navigating back and forth never refetches over the network.
+* **Dependency injection:** `AppContainer` (owned by the `Application`) constructs the Retrofit service, repository, and DataStore-backed `CaptureStore`. ViewModels receive dependencies through factories — no service locators inside ViewModels.
+* **Persistence:** captured Pokémon are stored with Jetpack DataStore (Preferences), exposed as a `Flow` that the UI observes reactively.
+
+```
+app/src/main/java/com/example/pokemonexplorerapp/
+├── data/            # API models, repository, CaptureStore, PokeApiService
+├── di/               # AppContainer (manual DI)
+├── ui/
+│   ├── components/  # shared composables (MyButton, MyCard, MyError)
+│   ├── screens/     # type selection, list, pager, details
+│   ├── theme/       # typography, fonts
+│   └── viewmodels/  # list, details, capture
+└── MainActivity.kt  # NavHost + routing
+```
+
+---
+
 ## Technical Overview
 
 The project is built using the latest Android development standards:
@@ -33,13 +64,20 @@ The project is built using the latest Android development standards:
 * **Testing:** Unit tests for repository caching and ViewModel state transitions (JUnit + coroutines-test), backed by a fake API service.
 * **Local Storage:** Implements Jetpack DataStore for lightweight, persistent key-value storage.
 * **Image Handling:** Utilizes Coil for asynchronous image loading and caching.
-* **State Management:** Uses ViewModels and Kotlin StateFlow to maintain a unidirectional data flow.
 
 ---
 
 ## Setup Instructions
 
 1. Clone the repository to your local machine.
-2. Open the project in Android Studio.
+2. Open the project in Android Studio (Ladybug or newer recommended).
 3. Sync the Gradle files to download the necessary dependencies.
-4. Run the application on a physical device or emulator running API level 24 or higher.
+4. Run the application on a physical device or emulator running **API level 26 (Android 8.0) or higher**.
+
+### Building and testing from the command line
+
+```bash
+./gradlew :app:assembleDebug        # debug APK
+./gradlew :app:testDebugUnitTest    # unit tests
+./gradlew :app:assembleRelease     # minified (R8) release APK
+```

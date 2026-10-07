@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
+import com.example.pokemonexplorerapp.ui.UiState
 import com.example.pokemonexplorerapp.ui.viewmodels.PokemonDetailsViewModel
 import com.example.pokemonexplorerapp.ui.components.MyCard
 import com.example.pokemonexplorerapp.ui.components.MyError
@@ -34,12 +35,10 @@ fun PokemonDetailsScreen(
     pokemonName: String,
     typeColor: Color,
     isPageActive: Boolean = true,
-    viewModel: PokemonDetailsViewModel = viewModel(),
-    captureViewModel: CaptureViewModel = viewModel(),
+    viewModel: PokemonDetailsViewModel = viewModel(factory = PokemonDetailsViewModel.Factory),
+    captureViewModel: CaptureViewModel = viewModel(factory = CaptureViewModel.Factory),
 ) {
-    val pokemon by viewModel.pokemon.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     val capturedSet by captureViewModel.capturedPokemon.collectAsState()
     val isCaptured = pokemonName in capturedSet
 
@@ -53,23 +52,23 @@ fun PokemonDetailsScreen(
             .background(Color(0xFFF4F4F4))
             .padding(horizontal = 16.dp)
     ) {
-        when {
-            isLoading -> {
+        when (val state = uiState) {
+            is UiState.Loading -> {
                 CircularProgressIndicator(
                     color = typeColor,
                     modifier = Modifier.align(Alignment.Center)
                 )
             }
 
-            errorMessage != null -> {
+            is UiState.Error -> {
                 MyError(
-                    message = errorMessage ?: "Unknown Error",
+                    message = state.message,
                     onRetry = { viewModel.fetchPokemonDetails(pokemonName) }
                 )
             }
 
-            pokemon != null -> {
-                val p = pokemon!!
+            is UiState.Success -> {
+                val p = state.data
                 Column(
                     modifier = Modifier
                         .fillMaxSize()

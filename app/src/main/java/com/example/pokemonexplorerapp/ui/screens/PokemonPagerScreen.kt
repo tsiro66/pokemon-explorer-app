@@ -14,10 +14,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.pokemonexplorerapp.ui.UiState
 import com.example.pokemonexplorerapp.ui.components.MyButton
 import com.example.pokemonexplorerapp.ui.components.MyCard
 import com.example.pokemonexplorerapp.ui.components.MyError
 import com.example.pokemonexplorerapp.ui.viewmodels.CaptureViewModel
+import com.example.pokemonexplorerapp.ui.viewmodels.PokemonDetailsViewModel
 import com.example.pokemonexplorerapp.ui.viewmodels.PokemonListViewModel
 
 @Composable
@@ -26,40 +28,39 @@ fun PokemonPagerScreen(
     typeColor: Color,
     startIndex: Int,
     onBack: () -> Unit,
-    listViewModel: PokemonListViewModel = viewModel(),
-    captureViewModel: CaptureViewModel = viewModel()
+    listViewModel: PokemonListViewModel = viewModel(factory = PokemonListViewModel.Factory),
+    captureViewModel: CaptureViewModel = viewModel(factory = CaptureViewModel.Factory)
 ) {
+    // Safe to call unconditionally: the ViewModel only refetches when the type changes,
+    // and the repository serves repeated requests from its in-memory cache.
     LaunchedEffect(typeName) {
-        if (listViewModel.allPokemon.value.isEmpty()) {
-            listViewModel.fetchPokemon(typeName)
-        }
+        listViewModel.fetchPokemon(typeName)
     }
 
-    val pokemonList by listViewModel.allPokemon.collectAsState()
-    val isLoading by listViewModel.isLoading.collectAsState()
-    val listErrorMessage by listViewModel.errorMessage.collectAsState()
+    val uiState by listViewModel.uiState.collectAsState()
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF4F4F4))
     ) {
-        when {
-            isLoading -> {
+        when (val state = uiState) {
+            is UiState.Loading -> {
                 CircularProgressIndicator(
                     color = typeColor,
                     modifier = Modifier.align(Alignment.Center)
                 )
             }
 
-            listErrorMessage != null -> {
+            is UiState.Error -> {
                 MyError(
-                    message = listErrorMessage ?: "Failed to load Pokémon list",
+                    message = state.message,
                     onRetry = { listViewModel.fetchPokemon(typeName) }
                 )
             }
 
-            pokemonList.isNotEmpty() -> {
+            is UiState.Success -> {
+                val pokemonList = state.data
                 val pagerState = rememberPagerState(
                     initialPage = startIndex.coerceIn(0, pokemonList.lastIndex),
                     pageCount = { pokemonList.size }
@@ -100,7 +101,10 @@ fun PokemonPagerScreen(
                             pokemonName = pokemonList[page],
                             typeColor = typeColor,
                             isPageActive = page == pagerState.currentPage,
-                            viewModel = viewModel(key = pokemonList[page]),
+                            viewModel = viewModel(
+                                key = pokemonList[page],
+                                factory = PokemonDetailsViewModel.Factory
+                            ),
                             captureViewModel = captureViewModel
                         )
                     }

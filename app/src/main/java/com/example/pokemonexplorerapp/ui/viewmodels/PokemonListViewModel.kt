@@ -1,40 +1,39 @@
 package com.example.pokemonexplorerapp.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.pokemonexplorerapp.PokemonExplorerApp
 import com.example.pokemonexplorerapp.data.PokemonRepository
+import com.example.pokemonexplorerapp.ui.UiState
+import com.example.pokemonexplorerapp.ui.toUserMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class PokemonListViewModel : ViewModel() {
-    private val _allPokemon = MutableStateFlow<List<String>>(emptyList())
-    val allPokemon: StateFlow<List<String>> = _allPokemon
+class PokemonListViewModel(private val repository: PokemonRepository) : ViewModel() {
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
-
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage
+    private val _uiState = MutableStateFlow<UiState<List<String>>>(UiState.Loading)
+    val uiState: StateFlow<UiState<List<String>>> = _uiState
 
     val searchQuery = MutableStateFlow("")
     val currentPage = MutableStateFlow(0)
 
-    private val repository = PokemonRepository()
+    private var currentType: String? = null
+
     fun fetchPokemon(typeName: String) {
-        // Don't re-fetch if we already have data for this type
-        if (_allPokemon.value.isNotEmpty()) return
+        // Reuse the loaded list for the same type; reload only when the type changes.
+        if (currentType == typeName && _uiState.value is UiState.Success) return
+        currentType = typeName
 
         viewModelScope.launch {
-            _errorMessage.value = null
-            _isLoading.value = true
+            _uiState.value = UiState.Loading
             try {
-                val list = repository.getPokemonByType(typeName)
-                _allPokemon.value = list
+                _uiState.value = UiState.Success(repository.getPokemonByType(typeName))
             } catch (e: Exception) {
-                _errorMessage.value = "Check your internet connection or try again later."
-            } finally {
-                _isLoading.value = false
+                _uiState.value = UiState.Error(e.toUserMessage())
             }
         }
     }
@@ -53,6 +52,16 @@ class PokemonListViewModel : ViewModel() {
     fun prevPage() {
         if (currentPage.value > 0) {
             currentPage.value--
+        }
+    }
+
+    companion object {
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                val app =
+                    this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as PokemonExplorerApp
+                PokemonListViewModel(app.container.pokemonRepository)
+            }
         }
     }
 }

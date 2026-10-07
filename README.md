@@ -9,10 +9,10 @@ A modern Pokémon browser built with Jetpack Compose. This application interface
 ### Type-Based Discovery
 The journey begins with a categorized grid of Pokémon types. Selecting a type filters the database and dynamically updates the application's color scheme to match the chosen element (e.g., red for Fire, blue for Water).
 
-### Infinite List and Search
-The app features an optimized list that handles large amounts of data efficiently.
+### Paginated List and Search
+The app features a paginated list that handles large amounts of data efficiently.
 * **Search Integration:** Users can filter Pokémon by name in real-time.
-* **Dynamic Loading:** Data is fetched on-demand to ensure the UI remains responsive.
+* **In-Memory Caching:** Data is fetched once per type and cached, so revisiting a type or Pokémon is instant.
 
 ### Interactive Detail Pager
 The details screen uses a paging system that allows users to swipe horizontally between Pokémon.
@@ -27,7 +27,10 @@ The details screen uses a paging system that allows users to swipe horizontally 
 The project is built using the latest Android development standards:
 
 * **User Interface:** Built entirely with Jetpack Compose for a declarative and reactive UI.
-* **Networking:** Uses Retrofit to communicate with the PokéAPI.
+* **State Management:** Uses ViewModels and Kotlin StateFlow with a sealed `UiState` (Loading / Error / Success) for a unidirectional data flow with no impossible states.
+* **Dependency Injection:** Lightweight manual DI via an `AppContainer` owned by the `Application`, keeping ViewModels constructor-injectable.
+* **Networking:** Uses Retrofit with an explicitly configured OkHttp client (timeouts, debug logging) to communicate with the PokéAPI.
+* **Testing:** Unit tests for repository caching and ViewModel state transitions (JUnit + coroutines-test), backed by a fake API service.
 * **Local Storage:** Implements Jetpack DataStore for lightweight, persistent key-value storage.
 * **Image Handling:** Utilizes Coil for asynchronous image loading and caching.
 * **State Management:** Uses ViewModels and Kotlin StateFlow to maintain a unidirectional data flow.

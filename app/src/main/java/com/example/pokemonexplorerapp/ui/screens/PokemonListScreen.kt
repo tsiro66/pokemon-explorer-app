@@ -12,9 +12,11 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.pokemonexplorerapp.ui.viewmodels.PokemonListViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.pokemonexplorerapp.ui.UiState
 import com.example.pokemonexplorerapp.ui.components.MyButton
 import com.example.pokemonexplorerapp.ui.components.MyError
+import com.example.pokemonexplorerapp.ui.viewmodels.PokemonListViewModel
 
 @Composable
 fun PokemonListScreen(
@@ -22,32 +24,13 @@ fun PokemonListScreen(
     typeColor: Color,
     onPokemonSelected: (String, Int) -> Unit,
     onBackPressed: () -> Unit,
-    viewModel: PokemonListViewModel =  androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: PokemonListViewModel = viewModel(factory = PokemonListViewModel.Factory)
 ) {
-    val allPokemon by viewModel.allPokemon.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val currentPage by viewModel.currentPage.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
 
     val pageSize = 10
-
-    val filteredPokemon = remember(allPokemon, searchQuery) {
-        if (searchQuery.isBlank()) allPokemon
-        else allPokemon.filter { it.contains(searchQuery.trim(), ignoreCase = true) }
-    }
-
-    val paginatedPokemon = remember(filteredPokemon, currentPage) {
-        filteredPokemon.chunked(pageSize).getOrElse(currentPage) { emptyList() }
-    }
-
-    val totalPages = remember(filteredPokemon) {
-        maxOf(1, (filteredPokemon.size + pageSize - 1) / pageSize)
-    }
-
-    LaunchedEffect(typeName) {
-        viewModel.fetchPokemon(typeName)
-    }
 
     Column(
         modifier = Modifier
@@ -90,89 +73,112 @@ fun PokemonListScreen(
             )
         )
 
-        when {
-            isLoading -> {
+        when (val state = uiState) {
+            is UiState.Loading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = typeColor)
                 }
             }
-            errorMessage != null -> {
+
+            is UiState.Error -> {
                 MyError(
-                    message = errorMessage ?: "Unknown Error",
+                    message = state.message,
                     onRetry = { viewModel.fetchPokemon(typeName) }
                 )
             }
-            filteredPokemon.isEmpty() -> {
-                Text(
-                    "NO POKÉMON FOUND FOR \"${searchQuery.uppercase()}\"",
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            else -> {
-                // Pokemon list
-                LazyColumn(modifier = Modifier.weight(1f)) {
-                    items(paginatedPokemon) { pokemonName ->
-                        val globalIndex = allPokemon.indexOf(pokemonName)
+
+            is UiState.Success -> {
+                val allPokemon = state.data
+
+                val filteredPokemon = remember(allPokemon, searchQuery) {
+                    if (searchQuery.isBlank()) allPokemon
+                    else allPokemon.filter { it.contains(searchQuery.trim(), ignoreCase = true) }
+                }
+
+                val paginatedPokemon = remember(filteredPokemon, currentPage) {
+                    filteredPokemon.chunked(pageSize).getOrElse(currentPage) { emptyList() }
+                }
+
+                val totalPages = remember(filteredPokemon) {
+                    maxOf(1, (filteredPokemon.size + pageSize - 1) / pageSize)
+                }
+
+                // O(1) name -> index in the full list (used to open the pager)
+                val globalIndexBy = remember(allPokemon) {
+                    allPokemon.withIndex().associate { (index, name) -> name to index }
+                }
+
+                if (filteredPokemon.isEmpty()) {
+                    Text(
+                        "NO POKÉMON FOUND FOR \"${searchQuery.uppercase()}\"",
+                        fontWeight = FontWeight.Bold
+                    )
+                } else {
+                    // Pokemon list
+                    LazyColumn(modifier = Modifier.weight(1f)) {
+                        items(paginatedPokemon, key = { it }) { pokemonName ->
+                            MyButton(
+                                text = pokemonName,
+                                onClick = {
+                                    onPokemonSelected(pokemonName, globalIndexBy[pokemonName] ?: 0)
+                                },
+                                backgroundColor = typeColor,
+                                textColor = Color.Black,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                height = 48.dp,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+
+                    // Pagination controls
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         MyButton(
-                            text = pokemonName,
-                            onClick = { onPokemonSelected(pokemonName, globalIndex) },
+                            text = "← Prev",
+                            onClick = { viewModel.prevPage() },
                             backgroundColor = typeColor,
-                            textColor = Color.Black,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
+                            modifier = Modifier.weight(1f),
                             height = 48.dp,
-                            fontSize = 12.sp
+                            fontSize = 14.sp,
+                            enabled = currentPage > 0
+                        )
+
+                        Text(
+                            text = "${currentPage + 1} / $totalPages",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+
+                        MyButton(
+                            text = "Next →",
+                            onClick = { viewModel.nextPage(totalPages) },
+                            backgroundColor = typeColor,
+                            modifier = Modifier.weight(1f),
+                            height = 48.dp,
+                            fontSize = 14.sp,
+                            enabled = currentPage < totalPages - 1
                         )
                     }
-                }
-
-                // Pagination controls
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                    // Back button
+                    Spacer(modifier = Modifier.height(8.dp))
                     MyButton(
-                        text = "← Prev",
-                        onClick = { viewModel.prevPage() },
+                        text = "← Back",
+                        onClick = onBackPressed,
                         backgroundColor = typeColor,
-                        modifier = Modifier.weight(1f),
-                        height = 48.dp,
-                        fontSize = 14.sp,
-                        enabled = currentPage > 0
+                        modifier = Modifier.fillMaxWidth(),
+                        height = 52.dp
                     )
-
-                    Text(
-                        text = "${currentPage + 1} / $totalPages",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-
-                    MyButton(
-                        text = "Next →",
-                        onClick = { viewModel.nextPage(totalPages) },
-                        backgroundColor = typeColor,
-                        modifier = Modifier.weight(1f),
-                        height = 48.dp,
-                        fontSize = 14.sp,
-                        enabled = currentPage < totalPages - 1
-                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
-                // Back button
-                Spacer(modifier = Modifier.height(8.dp))
-                MyButton(
-                    text = "← Back",
-                    onClick = onBackPressed,
-                    backgroundColor = typeColor,
-                    modifier = Modifier.fillMaxWidth(),
-                    height = 52.dp
-                )
-                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
 }
-
